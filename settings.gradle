@@ -1,0 +1,30 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()   // required for com.android.library
+        google()               // required for Android plugins
+        mavenCentral()         // optional, if needed
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.library") {
+                useVersion("8.13.0")
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'sqlite-android-decimal'
+
+include ':requery-root'
+project(':requery-root').projectDir = file('sqlite-android')
+
+include ':sqlite-android'
+project(':sqlite-android').projectDir = file('sqlite-android/sqlite-android')

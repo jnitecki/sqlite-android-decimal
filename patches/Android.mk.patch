@@ -1,0 +1,47 @@
+diff --git a/sqlite-android/sqlite-android/src/main/jni/sqlite/Android.mk "b/sqlite-android/sqlite-android/src/main/jni/sqlite/Android.mk"
+index 861c9ac..4f25002 100644
+--- a/sqlite-android/sqlite-android/src/main/jni/sqlite/Android.mk
++++ "b/sqlite-android/sqlite-android/src/main/jni/sqlite/Android.mk"
+@@ -23,17 +23,21 @@ sqlite_flags := \
+     -DSQLITE_ENABLE_FTS5 \
+     -DSQLITE_ENABLE_FTS5_PARENTHESIS \
+ 	-DSQLITE_ENABLE_JSON1 \
+ 	-DSQLITE_ENABLE_RTREE=1 \
+ 	-DSQLITE_UNTESTABLE \
+-	-DSQLITE_OMIT_COMPILEOPTION_DIAGS \
+ 	-DSQLITE_DEFAULT_FILE_PERMISSIONS=0600 \
+     -DSQLITE_DEFAULT_MEMSTATUS=0 \
+     -DSQLITE_MAX_EXPR_DEPTH=0 \
+     -DSQLITE_USE_ALLOCA \
+     -DSQLITE_ENABLE_BATCH_ATOMIC_WRITE \
+-    -O3
++    -O3 \
++	-DSQLITE_ENABLE_COLUMN_METADATA \
++	-DSQLITE_ENABLE_MATH_FUNCTIONS \
++	-DSQLITE_OMIT_LOAD_EXTENSION=0 \
++	-DSQLITE_ENABLE_DECIMAL \
++	-DSQLITE_EXTRA_INIT=sqlite3_decimal_extension_init
+ 
+ LOCAL_CFLAGS += $(sqlite_flags)
+ LOCAL_CFLAGS += -Wno-unused-parameter -Wno-int-to-pointer-cast
+ LOCAL_CFLAGS += -Wno-uninitialized -Wno-parentheses
+ LOCAL_CPPFLAGS += -Wno-conversion-null
+@@ -54,14 +58,17 @@ LOCAL_SRC_FILES:= \
+ 	android_database_CursorWindow.cpp \
+ 	CursorWindow.cpp \
+ 	JNIHelp.cpp \
+ 	JNIString.cpp
+ 
+-LOCAL_SRC_FILES += sqlite3.c
++LOCAL_SRC_FILES += sqlite3.c \
++	decimal.c \
++	decimal_init.c
+ 
+ LOCAL_C_INCLUDES += $(LOCAL_PATH)
+ 
+ LOCAL_MODULE:= libsqlite3x
+ LOCAL_LDLIBS += -ldl -llog -latomic
++LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384
+ 
+ include $(BUILD_SHARED_LIBRARY)
+ 

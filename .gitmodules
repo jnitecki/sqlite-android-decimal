@@ -1,0 +1,4 @@
+[submodule "sqlite-android"]
+	path = sqlite-android
+	url = https://github.com/requery/sqlite-android.git
+	branch = master
