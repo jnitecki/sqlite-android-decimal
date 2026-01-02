@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()   // required for com.android.library
+        google()               // required for Android plugins
+        mavenCentral()         // optional, if needed
+    }
+}
+
+rootProject.name = 'sqlite-android-decimal'
+
+include ':requery-root'
+project(':requery-root').projectDir = file('sqlite-android')
+
+include ':sqlite-android'
+project(':sqlite-android').projectDir = file('sqlite-android/sqlite-android')

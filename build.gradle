@@ -1,0 +1,26 @@
+plugins {
+	id "com.android.library" version "8.8.0" apply false
+    id 'de.undercouch.download' version '5.6.0' apply false
+}
+
+// Apply patches before upstream compilation
+tasks.register("applyUpstreamPatches") {
+    doLast {
+        def patchedDir = file("upstream/src/main")
+        fileTree(rootDir.resolve("patches")).files.each { patch ->
+            exec {
+                commandLine 'git', 'apply', '--directory', patchedDir.absolutePath, patch.absolutePath
+            }
+        }
+    }
+}
+
+// Find the upstream compilation task and make it depend on patches
+tasks.matching { it.name == 'compileDebugJavaWithJavac' || it.name == 'compileReleaseJavaWithJavac' }.configureEach {
+    dependsOn applyUpstreamPatches
+}
+
+// In your wrapper build.gradle
+tasks.register("bundleReleaseAar") {
+    dependsOn ":sqlite-android:bundleReleaseAar"
+}
