@@ -3,24 +3,76 @@ plugins {
     id 'de.undercouch.download' version '5.6.0' apply false
 }
 
-// Apply patches before upstream compilation
-tasks.register("applyUpstreamPatches") {
-    doLast {
-        def patchedDir = file("upstream/src/main")
-        fileTree(rootDir.resolve("patches")).files.each { patch ->
-            exec {
-                commandLine 'git', 'apply', '--directory', patchedDir.absolutePath, patch.absolutePath
+project(':sqlite-android') {
+    // Force :requery-root to be ready first
+    evaluationDependsOn(':requery-root')
+
+    if (!rootProject.hasProperty("VERSION_NAME") && project(':requery-root').hasProperty("VERSION_NAME")) {
+        project.ext.set("VERSION_NAME", project(':requery-root').getProperty("VERSION_NAME"))
+    }
+
+    if (project.hasProperty("POM_ARTIFACT_ID")) {
+        project.ext.set("POM_ARTIFACT_ID", rootProject.getProperty("POM_ARTIFACT_ID"))
+    }
+    if (project.hasProperty("POM_NAME")) {
+        project.ext.set("POM_NAME", rootProject.getProperty("POM_NAME"))
+    }
+    if (project.hasProperty("POM_DESCRIPTION")) {
+        project.ext.set("POM_DESCRIPTION", rootProject.getProperty("POM_DESCRIPTION"))
+    }
+
+    // Only apply to modules that use the Android Library plugin
+    plugins.withId('com.android.library') {
+        android {
+            libraryVariants.all { variant ->
+                variant.outputs.all { output ->
+                    if (outputFileName.endsWith('.aar')) {
+                        // Custom naming logic: [ProjectName]-[Variant]-[Version].aar
+                        //outputFileName = "${project.name}-${variant.name}-${project.version}.aar"
+                        outputFileName = "${rootProject.name}-${variant.name}.aar"
+                    }
+                }
             }
+        }
+        archivesBaseName = "${rootProject.name}-${project.name}"
+
+        tasks.named('preBuild') {
+            dependsOn ':configureBuild'
         }
     }
 }
 
-// Find the upstream compilation task and make it depend on patches
-tasks.matching { it.name == 'compileDebugJavaWithJavac' || it.name == 'compileReleaseJavaWithJavac' }.configureEach {
-    dependsOn applyUpstreamPatches
+ext {
+    decimalDistributionUrl = "https://raw.githubusercontent.com/sqlite/sqlite/master/ext/misc/decimal.c"
+    sqliteNativeSources = "sqlite-android/sqlite-android/src/main/jni/sqlite"
 }
 
-// In your wrapper build.gradle
-tasks.register("bundleReleaseAar") {
-    dependsOn ":sqlite-android:bundleReleaseAar"
+apply plugin: "de.undercouch.download"
+
+// Apply patches before upstream compilation
+tasks.register("configureBuild") {
+    doLast {
+        // Download decimals directly from SQLite mirror in the github
+        project.download.run {
+            src decimalDistributionUrl
+            //dest layout.buildDirectory.file("decimal.c").get().asFile
+            dest sqliteNativeSources
+            overwrite false
+        }
+
+        // Copy files from files
+        copy {
+            from "${rootDir}/files"
+            into sqliteNativeSources
+        }
+
+        // Patch files
+        file("${rootDir}/patches").listFiles()?.each { patch ->
+            if (patch.isFile()) {
+                exec {
+                    commandLine 'git', 'apply', '--directory', patchedDir.absolutePath, patch.absolutePath
+                }
+            }
+        }
+    }
 }

@@ -25,19 +25,12 @@ Fork of https://github.com/requery/sqlite-android/ with https://sqlite.org/float
 git diff --no-index sqlite-android\src\main\jni\sqlite\Android.mk sqlite-android\patches\Android.mk > sqlite-android\patches\Android.mk.patch
 
 # Synchronize
-git fetch upstream
-- get last tag from https://github.com/requery/sqlite-android/tags
-git checkout master
-git pull upstream tags/3.49.0
-git checkout -b decimal-update-3.49.0 tags/3.49.0
-
-git push origin
-git branch decimal-update
-
-
-
+git fetch
+git submodule init
+git submodule update
+git checkout tags/3.49.0
 
 # Build 
 gradlew bundleReleaseAar
 gradlew publish
-
+gradlew publishToMavenLocal
