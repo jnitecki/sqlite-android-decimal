@@ -62,7 +62,7 @@ tasks.register("configureBuild") {
 
         // Copy files from files
         copy {
-            from "${rootDir}/files"
+            from "${rootDir}/src"
             into sqliteNativeSources
         }
 
