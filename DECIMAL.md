@@ -22,12 +22,13 @@ Fork of https://github.com/requery/sqlite-android/ with https://sqlite.org/float
    - adding invoke to custom patch project
   
 # Generate patch
-git diff --no-index sqlite-android\src\main\jni\sqlite\Android.mk sqlite-android\patches\Android.mk > sqlite-android\patches\Android.mk.patch
+gradlew regeneratePatches
 
 # Synchronize
 git fetch
 git submodule init
 git submodule update
+cd sqlite-android
 git checkout tags/3.49.0
 
 # Build 
