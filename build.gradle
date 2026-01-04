@@ -38,6 +38,7 @@ project(':sqlite-android') {
 
         tasks.named('preBuild') {
             dependsOn ':configureBuild'
+            dependsOn ':installSqliteHeader'
         }
     }
 }
@@ -69,8 +70,66 @@ tasks.register("configureBuild") {
         // Patch files
         file("${rootDir}/patches").listFiles()?.each { patch ->
             if (patch.isFile()) {
+                def execResult = exec {
+                    commandLine 'git', 'apply', '--ignore-space-change', '--check', '--reverse', patch.absolutePath
+                    ignoreExitValue = true
+                }
+                if (execResult.exitValue != 0) {
+                    exec {
+                        commandLine 'git', 'apply', '--ignore-space-change', patch.absolutePath
+                    }
+                    logger.lifecycle("Patch '${patch.name}' has been applied.")
+                } else {
+                    logger.lifecycle("Patch '${patch.name}' already applied.")
+                }
+            }
+        }
+    }
+}
+
+tasks.register("installSqliteHeader") {
+    def downloadTask = project(":sqlite-android").tasks.named("downloadSqlite")
+    inputs.file(downloadTask.map { it.dest })
+
+    doLast {
+        copy {
+            // Use zipTree on the 'dest' file from the download task
+            from zipTree(downloadTask.get().dest)
+            into "sqlite-android/sqlite-android/src/main/jni/sqlite"
+            // Filter for the specific file
+            include "**/sqlite3ext.h"
+            // Flatten the structure so it's not nested in zip folders
+            eachFile { it.path = it.name }
+        }
+    }
+}
+
+task regeneratePatch {
+    group = "maintenance"
+    description = "Generate patches"
+
+    doLast {
+        file("${rootDir}/build").listFiles()?.each { target ->
+            if (!target.isDirectory()) {
+                println "Generating patch for " + target.name
+                def patchFile = file("${rootDir}/patches/${target.name}.patch")
                 exec {
-                    commandLine 'git', 'apply', '--directory', patchedDir.absolutePath, patch.absolutePath
+                    // Command: git diff --patch --unified=5 --no-index --output=patch_file source_file target_file
+                    commandLine 'git', 'diff', '--patch', '--unified=5', '--no-index', "--output=${patchFile.absolutePath}", sqliteNativeSources + "/" + target.name, target.absolutePath
+                    ignoreExitValue = true
+                }
+                if (patchFile.exists()) {
+                    if (patchFile.length() == 0) {
+                        patchFile.delete()
+                    } else {
+                        ant.replaceregexp(
+                            file: "${rootDir}/patches/${target.name}.patch",
+                            match: "b${target.absolutePath}",
+                            replace: "b/${sqliteNativeSources + "/" + target.name}",
+                            flags: 'g'
+                        )
+                        println "Patch generated for " + target.name
+                    }
                 }
             }
         }
