@@ -1,8 +1,8 @@
-diff --git a/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c b/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c
-index 8293fa9..fb023a6 100644
+diff --git a/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c "b/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c"
+index 6e6dc8a..95ee12a 100644
 --- a/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c
-+++ b/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c
-@@ -22997,11 +22997,13 @@ static const char * const sqlite3azCompileOpt[] = {
++++ "b/sqlite-android/sqlite-android/src/main/jni/sqlite/sqlite3.c"
+@@ -22549,11 +22549,13 @@ static const char * const sqlite3azCompileOpt[] = {
    "WIN32_MALLOC",
  #endif
  #ifdef SQLITE_ZERO_MALLOC

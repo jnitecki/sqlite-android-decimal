@@ -1,6 +1,5 @@
 plugins {
-	id "com.android.library" version "8.2.1" apply false
-    id 'de.undercouch.download' version '5.5.0' apply false
+    id 'de.undercouch.download' version '5.6.0' apply false
 }
 
 project(':sqlite-android') {
@@ -8,7 +7,19 @@ project(':sqlite-android') {
     evaluationDependsOn(':requery-root')
 
     if (!rootProject.hasProperty("VERSION_NAME") && project(':requery-root').hasProperty("VERSION_NAME")) {
-        project.ext.set("VERSION_NAME", project(':requery-root').getProperty("VERSION_NAME"))
+        def versionName = project(':requery-root').getProperty("VERSION_NAME")
+        if (rootProject.hasProperty("VERSION_TYPE")) {
+            if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Release")) {
+                versionName = versionName.replaceAll(/-SNAPSHOT$/, '')
+            } else if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Snapshot")) {
+                if (!versionName.toUpperCase().endsWith('-SNAPSHOT')) {
+                    versionName += '-SNAPSHOT'
+                }
+            } else {
+                throw new GradleException("VERSION_TYPE has to be either Release or Snapshot")
+            }
+        }
+        project.ext.set("VERSION_NAME", versionName)
     }
 
     if (project.hasProperty("POM_ARTIFACT_ID")) {
@@ -38,8 +49,8 @@ project(':sqlite-android') {
         archivesBaseName = "${rootProject.name}-${project.name}"
 
         tasks.named('preBuild') {
-            dependsOn ':configureBuild'
             dependsOn ':installSqliteHeader'
+            dependsOn ':configureBuild'
         }
     }
 }
@@ -53,11 +64,13 @@ apply plugin: "de.undercouch.download"
 
 // Apply patches before upstream compilation
 tasks.register("configureBuild") {
+    dependsOn ':installSqliteHeader'
+    dependsOn ':sqlite-android:installSqlite'
+
     doLast {
         // Download decimals directly from SQLite mirror in the github
         project.download.run {
             src decimalDistributionUrl
-            //dest layout.buildDirectory.file("decimal.c").get().asFile
             dest sqliteNativeSources
             overwrite false
         }
@@ -71,15 +84,18 @@ tasks.register("configureBuild") {
         // Patch files
         file("${rootDir}/patches").listFiles()?.each { patch ->
             if (patch.isFile()) {
+                def outputStream = new ByteArrayOutputStream()
                 def execResult = exec {
                     commandLine 'git', 'apply', '--ignore-space-change', '--check', '--reverse', patch.absolutePath
                     ignoreExitValue = true
+                    standardOutput = outputStream
+                    errorOutput = outputStream
                 }
                 if (execResult.exitValue != 0) {
                     exec {
                         commandLine 'git', 'apply', '--ignore-space-change', patch.absolutePath
                     }
-                    logger.lifecycle("Patch '${patch.name}' has been applied.")
+                    logger.lifecycle("Patch '${patch.name}' has been applied successfully.")
                 } else {
                     logger.lifecycle("Patch '${patch.name}' already applied.")
                 }
@@ -92,7 +108,7 @@ tasks.register("installSqliteHeader") {
     def downloadTask = project(":sqlite-android").tasks.named("downloadSqlite")
     inputs.file(downloadTask.map { it.dest })
 
-    doLast {
+    doFirst {
         copy {
             // Use zipTree on the 'dest' file from the download task
             from zipTree(downloadTask.get().dest)
@@ -110,7 +126,7 @@ task regeneratePatches {
     description = "Generate patches"
 
     doLast {
-        file("${rootDir}/build").listFiles()?.each { target ->
+        file("${rootDir}/patched").listFiles()?.each { target ->
             if (!target.isDirectory()) {
                 println "Generating patch for " + target.name
                 def patchFile = file("${rootDir}/patches/${target.name}.patch")
@@ -123,11 +139,10 @@ task regeneratePatches {
                     if (patchFile.length() == 0) {
                         patchFile.delete()
                     } else {
-                        ant.replaceregexp(
-                            file: "${rootDir}/patches/${target.name}.patch",
-                            match: "b${target.absolutePath}",
-                            replace: "b/${sqliteNativeSources + "/" + target.name}",
-                            flags: 'g'
+                        ant.replace(
+                            file:  "${rootDir}/patches/${target.name}.patch",
+                            token: "b/${target.absolutePath.trim('/').replace('\\', '\\\\')}",
+                            value: "b/${sqliteNativeSources + "/" + target.name}"
                         )
                         println "Patch generated for " + target.name
                     }

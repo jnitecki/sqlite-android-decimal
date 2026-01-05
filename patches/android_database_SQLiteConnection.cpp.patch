@@ -1,8 +1,8 @@
-diff --git a/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp b/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp
-index d199c95..2872cca 100644
+diff --git a/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp "b/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp"
+index bd7ff7b..64d3b5c 100644
 --- a/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp
-+++ b/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp
-@@ -950,11 +950,11 @@ static jboolean nativeHasCodec(JNIEnv* env, jobject clazz){
++++ "b/sqlite-android/sqlite-android/src/main/jni/sqlite/android_database_SQLiteConnection.cpp"
+@@ -900,11 +900,11 @@ static jboolean nativeHasCodec(JNIEnv* env, jobject clazz){
  #endif
  }
  
@@ -15,7 +15,7 @@ index d199c95..2872cca 100644
      int result = sqlite3_enable_load_extension(connection->db, 1);
      if (result == SQLITE_OK) {
          const char* fileChars = env->GetStringUTFChars(file, NULL);
-@@ -972,11 +972,11 @@ static void nativeLoadExtension(JNIEnv* env, jobject clazz,
+@@ -922,11 +922,11 @@ static void nativeLoadExtension(JNIEnv* env, jobject clazz,
          char* formattedError = sqlite3_mprintf("Could not register extension: %s", errorMessage);
          sqlite3_free(errorMessage);
  

@@ -4,6 +4,13 @@ pluginManagement {
         google()               // required for Android plugins
         mavenCentral()         // optional, if needed
     }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.library") {
+                useVersion("8.13.0")
+            }
+        }
+    }
 }
 
 dependencyResolutionManagement {
