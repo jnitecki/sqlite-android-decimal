@@ -8,7 +8,19 @@ project(':sqlite-android') {
     evaluationDependsOn(':requery-root')
 
     if (!rootProject.hasProperty("VERSION_NAME") && project(':requery-root').hasProperty("VERSION_NAME")) {
-        project.ext.set("VERSION_NAME", project(':requery-root').getProperty("VERSION_NAME"))
+        def versionName = project(':requery-root').getProperty("VERSION_NAME")
+        if (rootProject.hasProperty("VERSION_TYPE")) {
+            if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Release")) {
+                versionName = versionName.replaceAll(/-SNAPSHOT$/, '')
+            } else if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Snapshot")) {
+                if (!versionName.toUpperCase().endsWith('-SNAPSHOT')) {
+                    versionName += '-SNAPSHOT'
+                }
+            } else {
+                throw new GradleException("VERSION_TYPE has to be either Release or Snapshot")
+            }
+        }
+        project.ext.set("VERSION_NAME", versionName)
     }
 
     if (project.hasProperty("POM_ARTIFACT_ID")) {
