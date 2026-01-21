@@ -53,10 +53,11 @@ Note: Getting options itself may not be enabled in your SQLite, so trying to inq
 ## Build options
 If provided in environment variables prefix them with: ORG_GRADLE_PROJECT_
 ### General
-- *VERSION_TYPE* - Snapshot or Release - Snapshot adds SNAPSHOT suffix and uploads to Maven Central Snapshot repository, Release ensures that no suffix is added and uploads it to Maven Central Repository for manual publishing. Default: Snapshot
+- *VERSION_NAME* - if not present the version defined by requery/sqlite-android/ will be used, otherwise the version specified here will be build. It may contain -SNAPSHOT.
+- *PUBLISH_TYPE* - Snapshot or Release - Snapshot adds SNAPSHOT suffix and uploads to Maven Central Snapshot repository, Release ensures that no suffix is added and uploads it to Maven Central Repository for manual publishing. If not provided and *VERSION_NAME* was not present then Snapshot is build, otherwise version type is deducted from provided *VERSION_NAME*
 ### Maven Central Credenials
 - *mavenCentralUsername* - token username from Maven Central Portal - https://central.sonatype.com/usertoken
-- *m*avenCentralPassword* - token password from Maven Central Portal
+- *mavenCentralPassword* - token password from Maven Central Portal
 ### Signing Key Details
 1. Key in file on file system
   - *signing.keyId* - last 8 hexadecimal characters of PGP key ID
