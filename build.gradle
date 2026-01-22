@@ -65,10 +65,10 @@ project(':sqlite-android') {
     def sqliteVersion
     rootProject.ext.useCustomDownload = false
     if (rootProject.hasProperty("PUBLISH_TYPE")) {
-        if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Release|Snapshot$/)) {
-            throw new GradleException("PUBLISH_TYPE has to be either Release or Snapshot")
+        if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Final|Snapshot$/)) {
+            throw new GradleException("PUBLISH_TYPE has to be either Final or Snapshot")
         }
-        publishType = rootProject.getProperty("PUBLISH_TYPE") == "Release"? 1: 0;
+        publishType = rootProject.getProperty("PUBLISH_TYPE") == "Final"? 1: 0;
     }
     if (rootProject.hasProperty("VERSION_NAME")) {
         versionName = rootProject.getProperty("VERSION_NAME")
@@ -230,7 +230,7 @@ tasks.register("exportVars") {
         def outputFile = System.getenv("GITHUB_OUTPUT")
         if (outputFile != null) {
             new File(outputFile) << "VERSION_NAME=${rootProject.ext.versionName}\n"
-            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Release"}\n"
+            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Final"}\n"
             new File(outputFile) << "SQLITE_VERSION=${rootProject.ext.sqliteVersion}\n"
         }
     }
