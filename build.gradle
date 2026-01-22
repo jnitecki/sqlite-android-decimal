@@ -5,25 +5,104 @@ plugins {
     id 'signing'
 }
 
+import groovy.json.JsonSlurper
+
+static def getSqliteYear(version) {
+    def url = 'https://www.sqlite.org/changes.html'
+    def text = new URL(url).text
+    // Simple regex to match line starting with version
+    def matcher = text =~ /(\d{4})-\d{2}-\d{2}\s+\(${version.replace(".", "\\.")}\)/
+    if (matcher.find()) {
+        return matcher.group(1)
+    }
+    throw new GradleException("Cannot find release year for SQLite version $version")
+}
+
+static def sqliteVersionToCode(version) {
+    def parts = version.tokenize('.').collect { it.toInteger() }
+    def major = parts[0]
+    def minor = parts[1]
+    def patch = parts[2]
+    return String.format("%d%02d%02d00", major, minor, patch)
+}
+
+static def sqliteAmalgamationUrl(version) {
+    def code = sqliteVersionToCode(version)
+    def year = getSqliteYear(version)
+    return "https://sqlite.org/${year}/sqlite-amalgamation-${code}.zip"
+}
+
+allprojects {
+    afterEvaluate {
+        tasks.configureEach { task ->
+            if (rootProject.ext.sqliteVersion != "") {
+                if (task.name != "downloadSqliteCustom") {
+                    def hasDependency = task.dependsOn.any { dep ->
+                        if (dep instanceof String) {
+                            return dep == "downloadSqlite" || dep == ":sqlite-android:downloadSqlite"
+                        } else if (dep instanceof Task) {
+                            return dep.name == "downloadSqlite"
+                        } else if (dep instanceof TaskProvider) {
+                            return dep.name == "downloadSqlite"
+                        }
+                        return false
+                    }
+                    if (hasDependency) {
+                        task.dependsOn.add(":sqlite-android:downloadSqliteCustom")
+                    }
+                }
+            }
+        }
+    }
+}
+
 project(':sqlite-android') {
     // Force :requery-root to be ready first
     evaluationDependsOn(':requery-root')
 
-    if (!rootProject.hasProperty("VERSION_NAME") && project(':requery-root').hasProperty("VERSION_NAME")) {
-        def versionName = project(':requery-root').getProperty("VERSION_NAME")
-        if (rootProject.hasProperty("VERSION_TYPE")) {
-            if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Release")) {
-                versionName = versionName.replaceAll(/-SNAPSHOT$/, '')
-            } else if (rootProject.getProperty("VERSION_TYPE").equalsIgnoreCase("Snapshot")) {
-                if (!versionName.toUpperCase().endsWith('-SNAPSHOT')) {
-                    versionName += '-SNAPSHOT'
-                }
-            } else {
-                throw new GradleException("VERSION_TYPE has to be either Release or Snapshot")
-            }
+    def versionName
+    def publishType = -1
+    def sqliteVersion
+    rootProject.ext.useCustomDownload = false
+    if (rootProject.hasProperty("PUBLISH_TYPE")) {
+        if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Release|Snapshot$/)) {
+            throw new GradleException("PUBLISH_TYPE has to be either Release or Snapshot")
         }
-        project.ext.set("VERSION_NAME", versionName)
+        publishType = rootProject.getProperty("PUBLISH_TYPE") == "Release"? 1: 0;
     }
+    if (rootProject.hasProperty("VERSION_NAME")) {
+        versionName = rootProject.getProperty("VERSION_NAME")
+    } else if (project(':requery-root').hasProperty("VERSION_NAME")) {
+        versionName = project(':requery-root').getProperty("VERSION_NAME")
+        if (publishType == -1) {
+            publishType = 0
+        }
+    } else {
+        throw new GradleException("VERSION_NAME not defined neither in root nor requery level")
+    }
+    def match = versionName =~ ~/^(([0-9]+)\.([0-9]+)\.([0-9]+))(-SNAPSHOT)?$/;
+    if (match.find()) {
+        rootProject.ext.sqliteVersion = match[0][1]
+        if (rootProject.hasProperty("VERSION_NAME")) {
+            rootProject.ext.useCustomDownload = true
+        }
+        if (publishType == -1) {
+            publishType = match[0][5] == null || match[0][5].length() == 0? 1: 0
+        }
+    } else {
+        throw new GradleException("Invalid value for VERSION_NAME: '$versionName'. It must respresent SQLite version with optional -SNAPSHOT suffix")
+    }
+    if (publishType == 0) {
+        if (!versionName.toUpperCase().endsWith('-SNAPSHOT')) {
+            versionName += '-SNAPSHOT'
+        }
+    } else if (publishType == 1) {
+        versionName = versionName.replaceAll(/-SNAPSHOT$/, '')
+    }
+
+    project.ext.set("VERSION_NAME", versionName)
+    rootProject.ext.versionName = versionName
+    rootProject.ext.publishType = publishType
 
     if (project.hasProperty("POM_ARTIFACT_ID")) {
         project.ext.set("POM_ARTIFACT_ID", rootProject.getProperty("POM_ARTIFACT_ID"))
@@ -45,9 +124,11 @@ project(':sqlite-android') {
             libraryVariants.all { variant ->
                 variant.outputs.all { output ->
                     if (outputFileName.endsWith('.aar')) {
-                        // Custom naming logic: [ProjectName]-[Variant]-[Version].aar
-                        //outputFileName = "${project.name}-${variant.name}-${project.version}.aar"
-                        outputFileName = "${rootProject.name}-${variant.name}.aar"
+                        if (variant.name == "release") {
+                            outputFileName = "${rootProject.name}-${rootProject.ext.sqliteVersion}.aar"
+                        } else {
+                            outputFileName = "${rootProject.name}-${rootProject.ext.sqliteVersion}-${variant.name}.aar"
+                        }
                     }
                 }
             }
@@ -56,6 +137,19 @@ project(':sqlite-android') {
         tasks.named('preBuild') {
             dependsOn ':installSqliteHeader'
             dependsOn ':configureBuild'
+            dependsOn ":exportVars"
+        }
+
+        afterEvaluate {
+            if (rootProject.ext.sqliteVersion != "") {
+                tasks.named("downloadSqlite").configure { it.enabled = false }
+
+                // register your own task
+                tasks.register("downloadSqliteCustom", Download) { t ->
+                    src sqliteAmalgamationUrl(rootProject.ext.sqliteVersion)
+                    dest "src/main/jni/sqlite.zip"
+                }
+            }
         }
     }
 }
@@ -114,6 +208,7 @@ tasks.register("configureBuild") {
 }
 
 tasks.register("installSqliteHeader") {
+    dependsOn ':sqlite-android:downloadSqlite'
     def downloadTask = project(":sqlite-android").tasks.named("downloadSqlite")
     inputs.file(downloadTask.map { it.dest })
 
@@ -121,7 +216,7 @@ tasks.register("installSqliteHeader") {
         copy {
             // Use zipTree on the 'dest' file from the download task
             from zipTree(downloadTask.get().dest)
-            into "sqlite-android/sqlite-android/src/main/jni/sqlite"
+            into sqliteNativeSources
             // Filter for the specific file
             include "**/sqlite3ext.h"
             // Flatten the structure so it's not nested in zip folders
@@ -130,7 +225,18 @@ tasks.register("installSqliteHeader") {
     }
 }
 
-task regeneratePatches {
+tasks.register("exportVars") {
+    doLast {
+        def outputFile = System.getenv("GITHUB_OUTPUT")
+        if (outputFile != null) {
+            new File(outputFile) << "VERSION_NAME=${rootProject.ext.versionName}\n"
+            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Release"}\n"
+            new File(outputFile) << "SQLITE_VERSION=${rootProject.ext.sqliteVersion}\n"
+        }
+    }
+}
+
+tasks.register("regeneratePatches") {
     group = "maintenance"
     description = "Generate patches"
 
