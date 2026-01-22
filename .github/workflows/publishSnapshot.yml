@@ -7,7 +7,9 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    SQLITE_VERSION:
+    inputs:
+      SQLITE_VERSION:
+        type: string
         description: "SQLite version to use"
         required: false
         default: ""

@@ -1,11 +1,13 @@
 name: Upload Release
 
 permissions:
-  contents: read
+  contents: write
 
 on: 
   workflow_dispatch:
-    SQLITE_VERSION:
+    inputs:
+      SQLITE_VERSION:
+        type: string
         description: "SQLite version to use"
         required: false
         default: ""
