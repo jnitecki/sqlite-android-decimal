@@ -11,7 +11,7 @@ static def getSqliteYear(version) {
     def url = 'https://www.sqlite.org/changes.html'
     def text = new URL(url).text
     // Simple regex to match line starting with version
-    def matcher = text =~ /(\d{4})-\d{2}-\d{2}\s+\(${version.replaceAll(".", "\\.")}\)/
+    def matcher = text =~ /(\d{4})-\d{2}-\d{2}\s+\(${version.replace(".", "\\.")}\)/
     if (matcher.find()) {
         return matcher.group(1)
     }
@@ -63,7 +63,7 @@ project(':sqlite-android') {
     def versionName
     def publishType = -1
     def sqliteVersion
-    rootProject.ext.sqliteVersion = ""
+    rootProject.ext.useCustomDownload = false
     if (rootProject.hasProperty("PUBLISH_TYPE")) {
         if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Release|Snapshot$/)) {
             throw new GradleException("PUBLISH_TYPE has to be either Release or Snapshot")
@@ -82,9 +82,9 @@ project(':sqlite-android') {
     }
     def match = versionName =~ ~/^(([0-9]+)\.([0-9]+)\.([0-9]+))(-SNAPSHOT)?$/;
     if (match.find()) {
-        sqliteVersion = match[0][1]
+        rootProject.ext.sqliteVersion = match[0][1]
         if (rootProject.hasProperty("VERSION_NAME")) {
-            rootProject.ext.sqliteVersion = sqliteVersion
+            rootProject.ext.useCustomDownload = true
         }
         if (publishType == -1) {
             publishType = match[0][5] == null || match[0][5].length() == 0? 1: 0
@@ -100,8 +100,9 @@ project(':sqlite-android') {
         versionName = versionName.replaceAll(/-SNAPSHOT$/, '')
     }
 
-    project.ext.set("sqliteDistributionUrl", "fdfsdfs")
     project.ext.set("VERSION_NAME", versionName)
+    rootProject.ext.versionName = versionName
+    rootProject.ext.publishType = publishType
 
     if (project.hasProperty("POM_ARTIFACT_ID")) {
         project.ext.set("POM_ARTIFACT_ID", rootProject.getProperty("POM_ARTIFACT_ID"))
@@ -124,9 +125,9 @@ project(':sqlite-android') {
                 variant.outputs.all { output ->
                     if (outputFileName.endsWith('.aar')) {
                         if (variant.name == "release") {
-                            outputFileName = "${rootProject.name}-${sqliteVersion}.aar"
+                            outputFileName = "${rootProject.name}-${rootProject.ext.sqliteVersion}.aar"
                         } else {
-                            outputFileName = "${rootProject.name}-${sqliteVersion}-${variant.name}.aar"
+                            outputFileName = "${rootProject.name}-${rootProject.ext.sqliteVersion}-${variant.name}.aar"
                         }
                     }
                 }
@@ -136,6 +137,7 @@ project(':sqlite-android') {
         tasks.named('preBuild') {
             dependsOn ':installSqliteHeader'
             dependsOn ':configureBuild'
+            dependsOn ":exportVars"
         }
 
         afterEvaluate {
@@ -224,12 +226,11 @@ tasks.register("installSqliteHeader") {
 }
 
 tasks.register("exportVars") {
-    dependsOn "Prebuild"
     doLast {
         def outputFile = System.getenv("GITHUB_OUTPUT")
         if (outputFile != null) {
-            new File(outputFile) << "VERSION_NAME=${VERSION_NAME}\n"
-            new File(outputFile) << "PUBLISH_TYPE=${publishType == 0? "Snapshot": "Release"}\n"
+            new File(outputFile) << "VERSION_NAME=${rootProject.ext.versionName}\n"
+            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Release"}\n"
             new File(outputFile) << "SQLITE_VERSION=${rootProject.ext.sqliteVersion}\n"
         }
     }
