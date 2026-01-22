@@ -7,6 +7,7 @@ plugins {
 
 import groovy.json.JsonSlurper
 
+// Download of SQLite amalgamation requires knowing the release year for a given version
 static def getSqliteYear(version) {
     def url = 'https://www.sqlite.org/changes.html'
     def text = new URL(url).text
@@ -18,6 +19,7 @@ static def getSqliteYear(version) {
     throw new GradleException("Cannot find release year for SQLite version $version")
 }
 
+// Download file name for SQLite amalgamation uses specially formatted version code
 static def sqliteVersionToCode(version) {
     def parts = version.tokenize('.').collect { it.toInteger() }
     def major = parts[0]
@@ -26,6 +28,7 @@ static def sqliteVersionToCode(version) {
     return String.format("%d%02d%02d00", major, minor, patch)
 }
 
+// Construct the download URL for the given SQLite version
 static def sqliteAmalgamationUrl(version) {
     def code = sqliteVersionToCode(version)
     def year = getSqliteYear(version)
@@ -36,6 +39,7 @@ allprojects {
     afterEvaluate {
         tasks.configureEach { task ->
             if (rootProject.ext.sqliteVersion != "") {
+                // to every task that was dependent on original downloadSqlite we add dependency to our custom task
                 if (task.name != "downloadSqliteCustom") {
                     def hasDependency = task.dependsOn.any { dep ->
                         if (dep instanceof String) {
@@ -65,10 +69,10 @@ project(':sqlite-android') {
     def sqliteVersion
     rootProject.ext.useCustomDownload = false
     if (rootProject.hasProperty("PUBLISH_TYPE")) {
-        if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Release|Snapshot$/)) {
-            throw new GradleException("PUBLISH_TYPE has to be either Release or Snapshot")
+        if (!(rootProject.getProperty("PUBLISH_TYPE") =~ ~/^Final|Snapshot$/)) {
+            throw new GradleException("PUBLISH_TYPE has to be either Final or Snapshot")
         }
-        publishType = rootProject.getProperty("PUBLISH_TYPE") == "Release"? 1: 0;
+        publishType = rootProject.getProperty("PUBLISH_TYPE") == "Final"? 1: 0;
     }
     if (rootProject.hasProperty("VERSION_NAME")) {
         versionName = rootProject.getProperty("VERSION_NAME")
@@ -142,6 +146,7 @@ project(':sqlite-android') {
 
         afterEvaluate {
             if (rootProject.ext.sqliteVersion != "") {
+                // we cannot modify download url thus we disable the old taks and create our own
                 tasks.named("downloadSqlite").configure { it.enabled = false }
 
                 // register your own task
@@ -149,6 +154,15 @@ project(':sqlite-android') {
                     src sqliteAmalgamationUrl(rootProject.ext.sqliteVersion)
                     dest "src/main/jni/sqlite.zip"
                 }
+            }
+
+            // We cannot remove the automatic publishing flag from publishToMavenCentral,
+            // so we disable the task that passes that value to the execution
+            def automaticPublishingTask = tasks.named("enableAutomaticMavenCentralPublishing")
+            if (automaticPublishingTask != null && rootProject.hasProperty("mavenCentralAutomaticPublishing")) {
+                automaticPublishingTask.configure {
+                    it.enabled = Boolean.valueOf(rootProject.getProperty("mavenCentralAutomaticPublishing"))
+                    }
             }
         }
     }
@@ -230,7 +244,7 @@ tasks.register("exportVars") {
         def outputFile = System.getenv("GITHUB_OUTPUT")
         if (outputFile != null) {
             new File(outputFile) << "VERSION_NAME=${rootProject.ext.versionName}\n"
-            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Release"}\n"
+            new File(outputFile) << "PUBLISH_TYPE=${rootProject.ext.publishType == 0? "Snapshot": "Final"}\n"
             new File(outputFile) << "SQLITE_VERSION=${rootProject.ext.sqliteVersion}\n"
         }
     }
