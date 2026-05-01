@@ -31,6 +31,13 @@ jobs:
           java-version: "17"
           distribution: "adopt"
 
+      - name: Get SQLite version
+        run: |
+          if [ -z "$SQLITE_VERSION" ]; then
+            SQLITE_VERSION=$(./gradlew -q printLatestSQLiteVersion)
+          fi
+          echo "SQLITE_VERSION=$SQLITE_VERSION" >> $GITHUB_ENV
+
       - name: Build Gradle args
         id: gradle_args
         run: |

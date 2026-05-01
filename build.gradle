@@ -35,6 +35,32 @@ static def sqliteAmalgamationUrl(version) {
     return "https://sqlite.org/${year}/sqlite-amalgamation-${code}.zip"
 }
 
+static def getLatestSQLiteVersion() {
+    try {
+        def html = new URL("https://www.sqlite.org/chronology.html").text
+        def matcher = (html =~ /releaselog\/(\d+_\d+_\d+)\.html/)
+        if (matcher.count == 0) return ""
+        return matcher[0][1].replace('_', '.')
+    } catch (Exception e) {
+        return ""
+    }
+}
+
+task printLatestSQLiteVersion {
+    doLast {
+        // Print ONLY the version — nothing else — so the pipeline can capture it cleanly
+        println getLatestSQLiteVersion()
+    }
+}
+
+task debugSQLitePage {
+    doLast {
+        def html = new URL("https://www.sqlite.org/chronology.html").text
+        // Print first 2000 chars so you can see the actual page structure
+        println html.take(20000)
+    }
+}
+
 allprojects {
     afterEvaluate {
         tasks.configureEach { task ->
