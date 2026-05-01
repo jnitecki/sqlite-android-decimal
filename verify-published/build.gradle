@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdk {
+        version = release(36)
+    }
+
+    namespace "com.tbss.common.android.tests.sqlite"
+
+    defaultConfig {
+        applicationId "com.yourgroup.verify"
+        minSdkVersion 21
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    lintOptions {
+        abortOnError false
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets {
+        androidTest {
+            // Reuse the exact same tests from your library module
+            java.srcDirs += ['../src/androidTest/java']
+        }
+    }
+}
+
+dependencies {
+    androidTestImplementation "com.tbss-ltd:sqlite-android-decimal:$versionName"
+    androidTestImplementation "androidx.test:runner:1.5.2"
+    androidTestImplementation "androidx.test:core:1.5.0"
+    androidTestImplementation "androidx.test.ext:junit:1.1.5"
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(":verify-published:connectedAndroidTest")) {
+        println "Testing public library $versionName"
+    }
+}

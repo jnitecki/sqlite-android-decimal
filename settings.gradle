@@ -18,6 +18,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
     }
 }
 
@@ -28,3 +29,7 @@ project(':requery-root').projectDir = file('sqlite-android')
 
 include ':sqlite-android'
 project(':sqlite-android').projectDir = file('sqlite-android/sqlite-android')
+
+include ':verify-published'
+project(':verify-published').projectDir = file('verify-published')
+

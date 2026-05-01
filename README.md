@@ -1,8 +1,13 @@
 # Android SQLite with Decimal support
+
+[![Maven Central](https://img.shields.io/maven-central/v/com.tbss-ltd/sqlite-android-decimal)](https://central.sonatype.com/artifact/com.tbss-ltd/sqlite-android-decimal)
+[![API](https://img.shields.io/badge/API-21%2B-brightgreen)](https://android-arsenal.com/api?level=21)
+
 Fork of https://github.com/requery/sqlite-android/ with https://sqlite.org/floatingpoint.html#the_decimal_c_extension statically added. Additionally dynamic loading extensions disabled and metadata and rounding functions enabled. Native libraries are aligned to 16k boundary for compatibility with new Android requirements.
 
 # Thanks
-**Requery/SQLite-Android** for base version - my changes are just tiny.
+**SQLite** team and sponsors for amazing database engine.
+**Requery/SQLite-Android** for base version - my changes are only tiny.
 
 # Checking Decimal functions presence
 ## Using options
