@@ -59,7 +59,7 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           arch: x86
-          script: ./gradlew :sqlite-android:connectedAndroidTest -PPUBLISH_TYPE=Snapshot ${{ steps.gradle_args.outputs.extra_args }} --stacktrace
+          script: ./gradlew :sqlite-android:connectedAndroidTest -PPUBLISH_TYPE=Snapshot ${{ steps.gradle_args.outputs.extra_args }}
 
       - name: Upload results
         if: ${{ always() }}
