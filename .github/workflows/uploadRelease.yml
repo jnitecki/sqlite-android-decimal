@@ -57,7 +57,7 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           arch: x86
-          script: ./gradlew connectedAndroidTest -PPUBLISH_TYPE=Final ${{ steps.gradle_args.outputs.extra_args }} --stacktrace
+          script: ./gradlew :sqlite-android:connectedAndroidTest -PPUBLISH_TYPE=Final ${{ steps.gradle_args.outputs.extra_args }}
 
       - name: Upload results
         if: ${{ always() }}
@@ -70,8 +70,8 @@ jobs:
         id: build_aar
         run: ./gradlew bundleReleaseAar -PPUBLISH_TYPE=Final ${{ steps.gradle_args.outputs.extra_args }}
 
-      - name: Upload release (manual build from master only)
-        if: github.ref == 'refs/heads/master'
+      - name: Upload release
+        if: github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch'
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: SQLite ${{ steps.sqlite_version.outputs.SQLITE_VERSION }}
-          path: ./sqlite-android/sqlite-android/build/outputs/aar/sqlite-android-decimal-*.aar
+          path: ./sqlite-android/sqlite-android/build/outputs/aar/sqlite-decimal-android-*.aar
           
       - name: Create Git tag
         if: github.ref == 'refs/heads/master'
@@ -97,7 +97,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            ./sqlite-android/sqlite-android/build/outputs/aar/sqlite-android-decimal-${{ steps.sqlite_version.outputs.SQLITE_VERSION }}.aar
+            ./sqlite-android/sqlite-android/build/outputs/aar/sqlite-decimal-android-${{ steps.sqlite_version.outputs.SQLITE_VERSION }}.aar
           tag_name: ${{ steps.sqlite_version.outputs.SQLITE_VERSION }}
           name: Release ${{ steps.sqlite_version.outputs.SQLITE_VERSION }}
           draft: false
