@@ -10,7 +10,7 @@ android {
     namespace "com.tbss.common.android.tests.sqlite"
 
     defaultConfig {
-        applicationId "com.yourgroup.verify"
+        applicationId "com.tbss.common.android.tests"
         minSdkVersion 21
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -30,7 +30,7 @@ android {
 }
 
 dependencies {
-    androidTestImplementation "com.tbss-ltd:sqlite-android-decimal:$versionName"
+    androidTestImplementation "com.tbss-ltd:sqlite-decimal-android:$versionName"
     androidTestImplementation "androidx.test:runner:1.5.2"
     androidTestImplementation "androidx.test:core:1.5.0"
     androidTestImplementation "androidx.test.ext:junit:1.1.5"
