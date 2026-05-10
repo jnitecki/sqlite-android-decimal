@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'sqlite-android-decimal'
+rootProject.name = 'sqlite-decimal-android'
 
 include ':requery-root'
 project(':requery-root').projectDir = file('sqlite-android')
